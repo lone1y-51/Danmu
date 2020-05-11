@@ -37,22 +37,14 @@ func commonSend(c *websocket.Conn, message string) {
 }
 
 func loginServer(c *websocket.Conn) {
-	message := "type@=loginreq/roomid@=156277/"
+	message := "type@=loginreq/roomid@=916749/"
 	commonSend(c, message)
-	// err := c.WriteMessage(websocket.TextMessage, genDanmuMessage(message))
-	// if err != nil {
-	// 	return
-	// }
 	readMessage(c)
 }
 
 func joinGroup(c *websocket.Conn) {
-	message := "type@=joingroup/rid@=156277/gid@=-9999/"
+	message := "type@=joingroup/rid@=916749/gid@=-9999/"
 	commonSend(c, message)
-	// err := c.WriteMessage(websocket.TextMessage, genDanmuMessage(message))
-	// if err != nil {
-	// 	return
-	// }
 	readMessage(c)
 }
 
@@ -85,6 +77,8 @@ func printText(message map[string]string) {
 		}
 		outText += fmt.Sprintf("Lv %s %s: %s", message["level"], message["nn"], message["txt"])
 		log.Println(outText)
+		log.Println(message)
+		insertToDB(message)
 	}
 }
 
@@ -98,6 +92,9 @@ func readMessage(c *websocket.Conn) {
 	for {
 		lenBytes := res[start : start+4]
 		dataLen := int(binary.LittleEndian.Uint32(lenBytes))
+		if start+4+dataLen-1 >= len(res) {
+			break
+		}
 		textData := string(res[start+4*3 : start+4+dataLen])
 		handleResult := messageHandle(textData)
 		printText(handleResult)
