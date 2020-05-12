@@ -1,0 +1,2 @@
+### 房间详细信息
+http://open.douyucdn.cn/api/RoomApi/room/156277

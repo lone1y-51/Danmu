@@ -4,13 +4,38 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"gopkg.in/yaml.v2"
 )
+
+var giftDic map[string]string
+
+//Conf config struct
+type Conf struct {
+	RoomID string `yaml:"roomId"`
+}
+
+var config Conf
+
+func loadConf() {
+	yamlFile, err := ioutil.ReadFile("conf.yaml")
+	if err != nil {
+		log.Println("load file error: ", err)
+		return
+	}
+	err = yaml.Unmarshal(yamlFile, &config)
+	if err != nil {
+		log.Println("parse conf error: ", err)
+		return
+	}
+	log.Println("load config info: ", config)
+}
 
 func genDanmuMessage(message string) []byte {
 	log.Println("send message: ", message)
@@ -37,13 +62,13 @@ func commonSend(c *websocket.Conn, message string) {
 }
 
 func loginServer(c *websocket.Conn) {
-	message := "type@=loginreq/roomid@=916749/"
+	message := "type@=loginreq/roomid@=" + config.RoomID + "/"
 	commonSend(c, message)
 	readMessage(c)
 }
 
 func joinGroup(c *websocket.Conn) {
-	message := "type@=joingroup/rid@=916749/gid@=-9999/"
+	message := "type@=joingroup/rid@=" + config.RoomID + "/gid@=-9999/"
 	commonSend(c, message)
 	readMessage(c)
 }
@@ -72,13 +97,20 @@ func printText(message map[string]string) {
 		return
 	}
 	if message["type"] == "chatmsg" {
+		if rg, ok := message["rg"]; ok && rg != "1" {
+			outText += "[房] "
+		}
 		if message["bl"] != "0" {
 			outText += fmt.Sprintf("[%s %s] ", message["bl"], message["bnn"])
 		}
 		outText += fmt.Sprintf("Lv %s %s: %s", message["level"], message["nn"], message["txt"])
 		log.Println(outText)
-		log.Println(message)
-		insertToDB(message)
+		// insertToDB(message)
+	}
+	if message["type"] == "dgb" {
+		outText += fmt.Sprintf("Lv %s %s: 赠送给主播 %sX%s %s连击",
+			message["level"], message["nn"], giftDic[message["gfid"]], message["gfcnt"], message["hits"])
+		log.Println(outText)
 	}
 }
 
@@ -103,11 +135,13 @@ func readMessage(c *websocket.Conn) {
 			break
 		}
 	}
-	// log.Println(string(res))
 }
 
 func main() {
-	log.SetFlags(0)
+	loadConf()
+	giftDic = getGiftDic()
+	log.Println(giftDic)
+	// log.SetFlags(0)
 	u := url.URL{Scheme: "wss", Host: "danmuproxy.douyu.com:8504", Path: "/"}
 	log.Println("connect to ", u.String())
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
