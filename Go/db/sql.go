@@ -1,15 +1,17 @@
-package main
+package db
 
 import (
 	"database/sql"
 	"log"
 
+	//mysql used
 	_ "github.com/go-sql-driver/mysql"
 )
 
 var db, err = sql.Open("mysql", "lone1y:123456@/danmu")
 
-func insertToDB(content map[string]string) {
+//InsertToDB is a function
+func InsertToDB(content map[string]string) {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println(err)

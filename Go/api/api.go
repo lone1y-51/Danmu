@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"encoding/json"
@@ -22,8 +22,9 @@ type roomRes struct {
 	Data roomInfo `json:"data"`
 }
 
-func getGiftDic() map[string]string {
-	url := "http://open.douyucdn.cn/api/RoomApi/room/" + config.RoomID
+//GetGiftDic is a func
+func GetGiftDic(roomID string) map[string]string {
+	url := "http://open.douyucdn.cn/api/RoomApi/room/" + roomID
 	var res roomRes
 	result := make(map[string]string)
 	resp, err := http.Get(url)
@@ -41,6 +42,7 @@ func getGiftDic() map[string]string {
 	for _, gift := range res.Data.Gift {
 		result[gift.ID] = gift.Name
 	}
+	//免费礼物，手动添加荧光棒
 	result["824"] = "荧光棒"
 	return result
 }

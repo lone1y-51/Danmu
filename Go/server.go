@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/url"
 	"strings"
 	"time"
+
+	"danmu/api"
+	"danmu/db"
 
 	"github.com/gorilla/websocket"
 	"gopkg.in/yaml.v2"
@@ -19,6 +21,7 @@ var giftDic map[string]string
 //Conf config struct
 type Conf struct {
 	RoomID string `yaml:"roomId"`
+	URL    string `yaml:"url"`
 }
 
 var config Conf
@@ -50,7 +53,6 @@ func genDanmuMessage(message string) []byte {
 	buffer.Write([]byte(message))
 	buffer.WriteByte(0x00)
 	data := buffer.Bytes()
-	log.Println("gen bytes: ", data)
 	return data
 }
 
@@ -105,12 +107,14 @@ func printText(message map[string]string) {
 		}
 		outText += fmt.Sprintf("Lv %s %s: %s", message["level"], message["nn"], message["txt"])
 		log.Println(outText)
-		// insertToDB(message)
+		db.InsertToDB(message)
 	}
 	if message["type"] == "dgb" {
-		outText += fmt.Sprintf("Lv %s %s: 赠送给主播 %sX%s %s连击",
-			message["level"], message["nn"], giftDic[message["gfid"]], message["gfcnt"], message["hits"])
-		log.Println(outText)
+		if _, ok := giftDic[message["gfid"]]; ok {
+			outText += fmt.Sprintf("Lv %s %s: 赠送给主播 %sX%s %s连击",
+				message["level"], message["nn"], giftDic[message["gfid"]], message["gfcnt"], message["hits"])
+			log.Println(outText)
+		}
 	}
 }
 
@@ -118,7 +122,9 @@ func readMessage(c *websocket.Conn) {
 	_, res, err := c.ReadMessage()
 	if err != nil {
 		log.Println("read err", err)
-		return
+		if restartSocket(c) < 0 {
+			return
+		}
 	}
 	start := 0
 	for {
@@ -137,20 +143,44 @@ func readMessage(c *websocket.Conn) {
 	}
 }
 
-func main() {
-	loadConf()
-	giftDic = getGiftDic()
-	log.Println(giftDic)
-	// log.SetFlags(0)
-	u := url.URL{Scheme: "wss", Host: "danmuproxy.douyu.com:8504", Path: "/"}
-	log.Println("connect to ", u.String())
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+func createSocket() *websocket.Conn {
+	c, _, err := websocket.DefaultDialer.Dial(config.URL, nil)
 	if err != nil {
 		log.Fatalln("dial:", err)
+		return nil
 	}
-	defer c.Close()
+	return c
+}
+
+func startSocket(c *websocket.Conn) {
 	loginServer(c)
 	joinGroup(c)
+}
+
+func restartSocket(c *websocket.Conn) int {
+	c.Close()
+	c = createSocket()
+	if c == nil {
+		log.Println("socket restart err")
+		return -1
+	}
+	startSocket(c)
+	return 0
+}
+
+func main() {
+	loadConf()
+	giftDic = api.GetGiftDic(config.RoomID)
+	log.Println(giftDic)
+	// log.SetFlags(0)
+	log.Println("connect to ", config.URL)
+	c := createSocket()
+	if c == nil {
+		log.Println("create socket err")
+		return
+	}
+	defer c.Close()
+	startSocket(c)
 	t := time.NewTicker(time.Duration(45 * time.Second))
 	for {
 		select {
