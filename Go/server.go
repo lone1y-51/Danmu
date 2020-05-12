@@ -18,6 +18,8 @@ import (
 
 var giftDic map[string]string
 
+var nobleDic map[string]string = map[string]string{"1": "骑士", "2": "子爵", "3": "伯爵", "4": "公爵", "5": "国王", "6": "皇帝", "7": "游侠"}
+
 //Conf config struct
 type Conf struct {
 	RoomID string `yaml:"roomId"`
@@ -99,8 +101,11 @@ func printText(message map[string]string) {
 		return
 	}
 	if message["type"] == "chatmsg" {
-		if rg, ok := message["rg"]; ok && rg != "1" {
+		if rg, ok := message["rg"]; ok && rg == "4" {
 			outText += "[房] "
+		}
+		if nl, ok := message["nl"]; ok && nl != "0" {
+			outText += fmt.Sprintf("[%s] ", nobleDic[message["nl"]])
 		}
 		if message["bl"] != "0" {
 			outText += fmt.Sprintf("[%s %s] ", message["bl"], message["bnn"])
