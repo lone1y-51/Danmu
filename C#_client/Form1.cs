@@ -55,7 +55,7 @@ namespace Danmu
 
         private void keepTimerTick(Object sender, EventArgs args)
         {
-            Console.WriteLine("aaaaaaaaaaaa");
+            ws.Send(genDataByte("type@=mrkl/"));
         }
 
         private void getGiftInfo()
