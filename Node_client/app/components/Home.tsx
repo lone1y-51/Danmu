@@ -1,7 +1,43 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import routes from '../constants/routes.json';
 import styles from './Home.css';
 import { Buffer } from 'buffer';
+import SingleDM from './SingleDM';
+import {Card} from 'antd';
+
+function Utf8ArrayToStr(array: Uint8Array) {
+    var out, i, len, c;
+    var char2, char3;
+ 
+    out = "";
+    len = array.length;
+    i = 0;
+    while(i < len) {
+    c = array[i++];
+    switch(c >> 4)
+    { 
+      case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
+        // 0xxxxxxx
+        out += String.fromCharCode(c);
+        break;
+      case 12: case 13:
+        // 110x xxxx   10xx xxxx
+        char2 = array[i++];
+        out += String.fromCharCode(((c & 0x1F) << 6) | (char2 & 0x3F));
+        break;
+      case 14:
+        // 1110 xxxx  10xx xxxx  10xx xxxx
+        char2 = array[i++];
+        char3 = array[i++];
+        out += String.fromCharCode(((c & 0x0F) << 12) |
+                       ((char2 & 0x3F) << 6) |
+                       ((char3 & 0x3F) << 0));
+        break;
+    }
+    }
+ 
+    return out;
+}
 
 function genDanmuMessage(message: string) {
 	console.log("send message: ", message)
@@ -32,36 +68,55 @@ function joinGroupMessage(){
   let buf = genDanmuMessage(message);
   return buf;
 }
+function messageHandle(message: string){
+    let msgArray = message.split('/');
+    let result = new Map();
+    msgArray.forEach(item => {
+        let temp = item.split('@=');
+        // result[temp[0]] = temp[1];
+        result.set(temp[0], temp[1]);
+    })
+    return result;
+}
 
 export default function Home() {
-  const wss = new WebSocket("wss://danmuproxy.douyu.com:8504/");
-  wss.onmessage = (evt) => {
-    evt.data.text().then((val: string) => {
-      console.log(val);
-      let temp = val.split("type@=");
-      if(temp.length < 2){
-        return;
-      }
-      let messageType = temp[1].split('/')[0];
-      if(messageType == 'loginres'){
-        console.log("login resp");
-        wss.send(joinGroupMessage());
-      }
-      if(messageType == 'chatmsg'){
-        console.log("danmu data");
-      }
-    });
-  }
+    const [dm, setDm] = useState(Array<Map<any, any> >());
+    const wss = new WebSocket("wss://danmuproxy.douyu.com:8504/");
+    wss.onmessage = (evt) => {
+        evt.data.stream().getReader().read().then((val: any) => {
+            let buf = val.value.slice(12, val.value.length-1);
+            let dataText = Utf8ArrayToStr(buf);
+            let dataMap = messageHandle(dataText);
+            if(dataMap.get("type") == "loginres"){
+                wss.send(joinGroupMessage());
+                return;
+            }else if(dataMap.get("type") == "chatmsg"){
+                // dm.push(dataMap.get('txt'));
+                console.log(dataMap.get('txt'));
+                setDm([
+                    ...dm,
+                    dataMap
+                ]);
+            }
+        });
+    }
   useEffect(() => {
-    console.log("into effect");
     wss.onopen = () => {
       console.log("connect to danmu server success");
       wss.send(loginMessage());
     }
   });
   return (
-    <div className={styles.container} data-tid="container">
-      <h2>Home</h2>
+    <div>
+        <Card title={null} className={styles.danmuContainer}>
+            <div>
+                {
+                    dm.map((val: Map<any, any>) => {
+                        return <SingleDM content={val} />
+                    })
+                }
+            </div>
+        </Card>
       {/* <Link to={routes.COUNTER}>to Counter</Link> */}
     </div>
   );
