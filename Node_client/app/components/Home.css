@@ -14,12 +14,12 @@
 }
 
 .danmuContainer {
-  background-color: white;
   width: 400px;
   height: 800px;
 }
 
 .danmuContainer div {
   overflow-y: auto;
-  color: black;
+  color: white;
+  height: inherit;
 }
