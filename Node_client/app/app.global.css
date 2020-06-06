@@ -27,7 +27,7 @@ h2 {
 }
 
 p {
-  font-size: 24px;
+  font-size: 18px;
 }
 
 li {
@@ -44,4 +44,8 @@ a:hover {
   opacity: 1;
   text-decoration: none;
   cursor: pointer;
+}
+
+div {
+  height: inherit
 }

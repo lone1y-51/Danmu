@@ -2,7 +2,7 @@ import React from 'react';
 export default function SingleDM(props: {content: Map<any, any>}){
     let backgroud = props.content.get('rg') ? 'gray' : undefined;
     return(
-        <p style={{fontSize: 18, backgroundColor: backgroud}} >
+        <p style={{backgroundColor: backgroud}} >
             {props.content.get('rg') == '4' ? <span style={{color: 'yellow'}} >[房] </span> : null}
             {props.content.get('bl') != '0' ? <span style={{color: 'yellow'}}>[{props.content.get('bl')} {props.content.get('bnn')}] </span> : null}
             <span>Lv {props.content.get('level')} </span>
