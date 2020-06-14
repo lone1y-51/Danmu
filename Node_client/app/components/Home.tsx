@@ -8,6 +8,7 @@ import getRoomInfo from '../api/room';
 import SingleGift from './SingleGift';
 
 const wss = new WebSocket("wss://danmuproxy.douyu.com:8504/");
+const roomID = "916749";
 function Utf8ArrayToStr(array: Uint8Array) {
     var out, i, len, c;
     var char2, char3;
@@ -61,12 +62,12 @@ function genDanmuMessage(message: string) {
 }
 
 function loginMessage(){
-    let message = "type@=loginreq/roomid@=9999/";
+    let message = "type@=loginreq/roomid@="+roomID+"/";
     let buf = genDanmuMessage(message);
     return buf;
 }
 function joinGroupMessage(){
-    let message = "type@=joingroup/rid@=9999/gid@=-9999/";
+    let message = "type@=joingroup/rid@="+roomID+"/gid@=-9999/";
     let buf = genDanmuMessage(message);
     return buf;
 }
@@ -113,7 +114,7 @@ export default function Home() {
             console.log("connect to danmu server success");
             wss.send(loginMessage());
         }
-        getRoomInfo("9999").then(res => {
+        getRoomInfo(roomID).then(res => {
             if(res.status === 200){
                 let temp = new Map();
                 console.log(res.data.data.gift);
