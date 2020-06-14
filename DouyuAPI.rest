@@ -1,2 +1,5 @@
 ### 房间详细信息
-http://open.douyucdn.cn/api/RoomApi/room/156277
+http://open.douyucdn.cn/api/RoomApi/room/74751
+
+###
+https://webconf.douyucdn.cn/resource/common/gift/gift_template/20003.json
